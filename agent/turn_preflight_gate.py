@@ -62,6 +62,11 @@ def run_preflight_gate(
     # failure cooldown, then should_compress().
     _compressor = agent.context_compressor
     _preflight_threshold = int(getattr(_compressor, "threshold_tokens", 0) or 0)
+    if _preflight_threshold <= 0:
+        # Engine reported no threshold (e.g. plugin dropped update_model).  Fall back to the
+        # context window the host resolved so a 0 threshold does not keep the overflow flag
+        # armed forever (treating every request as "always over").
+        _preflight_threshold = int(getattr(_compressor, "context_length", 0) or 0)
     _provider_overflow_preflight = _provider_overflow_recovery_pending and (
         _preflight_threshold <= 0 or request_pressure_tokens >= _preflight_threshold
     )
